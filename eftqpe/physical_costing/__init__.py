@@ -5,3 +5,12 @@ from .fermi_hubbard import (
     fermi_hubbard_multicircuit_physical_cost,
     fermi_hubbard_ftqc_physical_cost,
 )
+
+__all__ = [
+    "opt_circuit_subdivision",
+    "ftqc_physical_cost",
+    "multicircuit_physical_cost",
+    "fermi_hubbard_walk_costs",
+    "fermi_hubbard_multicircuit_physical_cost",
+    "fermi_hubbard_ftqc_physical_cost",
+]

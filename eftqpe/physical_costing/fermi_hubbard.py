@@ -60,7 +60,7 @@ def fermi_hubbard_multicircuit_physical_cost(side, gamma, delta_e=0.01, n_factor
     cost = multicircuit_physical_cost(
         epsilon=delta_e / qlambda,
         gamma=gamma,
-        toffoli_per_unitary=toffoli_per_unitary,
+        magic_per_unitary=toffoli_per_unitary,
         n_algo_qubits=total_qubits,
         n_factories=n_factories,
     )
