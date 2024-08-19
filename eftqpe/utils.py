@@ -22,7 +22,7 @@ def fit_prefactor(x, y, power):
 
 def make_decreasing_function(x: Sequence, y: Sequence) -> Tuple[List, List]:
     """
-    Constructs a decreasing function y(x) by sorting x and eliminating points where y increases.
+    Constructs a decreasing function y(x) by sorting x and eliminating points where y_i+1 >= y_1.
     """
     xlist, ylist = zip(*sorted(zip(x, y)))
     current_min = np.inf
