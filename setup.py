@@ -9,6 +9,7 @@ dependencies = [
     "pandas==2.2.2",
     "numpy==1.26.4",
     "matplotlib==3.9.0",
+    "tables==3.10.1"
 ]
 
 
