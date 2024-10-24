@@ -1,17 +1,5 @@
-"""
-TODO: document the functions that need to be used externally.
-
-TODO: possibly split this into multiple files for better organization.
-possible division:
-- Fisher information
-- Optimal parameters choice
-- MLE simulation
-"""
-
 import numpy as np
 from scipy.integrate import quad
-from scipy.optimize import minimize_scalar, minimize, basinhopping
-from eftqpe.utils import circ_dist
 
 def noiseless_SinQPE_prob_func(x, m):
     v = np.array(
