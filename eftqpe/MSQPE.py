@@ -3,6 +3,10 @@ from scipy.integrate import quad
 from scipy.optimize import minimize_scalar, minimize, basinhopping
 from eftqpe.utils import circ_dist
 
+from SinQPE import SinQPE_prob_func as pmf
+from SinQPE import SinQPE_Holevo_error as Holevo_error
+from SinQPE import SinQPE_FI as Fisher_information
+
 # constant c1 such that T1 = floor(c1/gamma^(1/3)) is the maximal depth for which 1 sample is used
 DEPTH_FACTOR_1 = (2 / 3 * np.pi**2) ** (1 / 3)
 
@@ -16,14 +20,14 @@ def OptMLESinQPE_params(target_error, damp_strength=0.0, grid_search_width=5):
     thresh_dim1 = int(DEPTH_FACTOR_1 * damp_strength ** (-1 / 3)) + 1
     thresh_dim2 = int(DEPTH_FACTOR_2 / damp_strength) + 1
 
-    thresh_error1 = SinQPE_Holevo_error(thresh_dim1, damp_strength)
-    thresh_error2 = 1 / np.sqrt(SinQPE_FI(thresh_dim2, damp_strength) * MAX_NSHOT)
+    thresh_error1 = Holevo_error(thresh_dim1, damp_strength)
+    thresh_error2 = 1 / np.sqrt(Fisher_information(thresh_dim2, damp_strength) * MAX_NSHOT)
 
     if target_error > thresh_error1:
         n_samples = 1
         control_dim = 1 + np.ceil(np.pi / target_error).astype(int)
     elif target_error < thresh_error2:
-        n_samples = np.ceil(1 / SinQPE_FI(thresh_dim2, damp_strength) / target_error**2).astype(int)
+        n_samples = np.ceil(1 / Fisher_information(thresh_dim2, damp_strength) / target_error**2).astype(int)
         control_dim = thresh_dim2
     else:
         control_dim, n_samples = _OptMLESinQPE_midregime(
@@ -71,7 +75,7 @@ def _OptMLESinQPE_midregime(
 
 def loglikelihood(samples, control_dim, damp_strength):
     return lambda x: np.mean(
-        np.log(SinQPE_prob_func(np.array(samples), x, control_dim, damp_strength))
+        np.log(pmf(np.array(samples), x, control_dim, damp_strength))
     )
 
 def negloglikelihood(samples, control_dim, damp_strength):
@@ -80,7 +84,7 @@ def negloglikelihood(samples, control_dim, damp_strength):
 def MLESinQPE_var_model(damp_strength, control_dim, n_samples):
     a = -np.log(1 - np.exp(-damp_strength * (control_dim - 1))) / 2
     fail_prob = np.exp(-a * n_samples)
-    FI = SinQPE_FI(int(control_dim), damp_strength)
+    FI = Fisher_information(int(control_dim), damp_strength)
     if n_samples == 0:
         return fail_prob * 2
     return fail_prob * 2 + (1 - fail_prob) * 1 / FI / n_samples
