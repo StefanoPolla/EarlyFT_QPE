@@ -21,74 +21,74 @@ MAX_NSHOT = 100
 ### Optimal parameters choice
 
 def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
-    thresh_dim1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3)) + 1
-    thresh_dim2 = int(DEPTH_FACTOR_2 / noise_rate) + 1
+    thresh_depth1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3))
+    thresh_depth2 = int(DEPTH_FACTOR_2 / noise_rate)
 
-    thresh_error1 = Holevo_error(thresh_dim1, noise_rate)
-    thresh_error2 = 1 / np.sqrt(Fisher_information(thresh_dim2, noise_rate) * MAX_NSHOT)
+    thresh_error1 = Holevo_error(thresh_depth1, noise_rate)
+    thresh_error2 = 1 / np.sqrt(Fisher_information(thresh_depth2, noise_rate) * MAX_NSHOT)
 
     if target_error > thresh_error1:
         n_samples = 1
-        control_dim = 1 + np.ceil(np.pi / target_error).astype(int)
+        depth = np.ceil(np.pi / target_error).astype(int)
     elif target_error < thresh_error2:
-        n_samples = np.ceil(1 / Fisher_information(thresh_dim2, noise_rate) / target_error**2).astype(int)
-        control_dim = thresh_dim2
+        n_samples = np.ceil(1 / Fisher_information(thresh_depth2, noise_rate) / target_error**2).astype(int)
+        depth = thresh_depth2
     else:
-        control_dim, n_samples = _OptMLESinQPE_midregime(
+        depth, n_samples = _OptMLESinQPE_midregime(
             target_error,
             noise_rate,
-            thresh_dim1,
-            thresh_dim2,
+            thresh_depth1,
+            thresh_depth2,
             grid_search_width=grid_search_width,
         )
 
-    return int(control_dim), int(n_samples)
+    return int(depth), int(n_samples)
 
 def _OptMLESinQPE_midregime(
-    target_error, noise_rate, thresh_dim1, thresh_dim2, initial_guess=None, grid_search_width=5
+    target_error, noise_rate, thresh_depth1, thresh_depth2, initial_guess=None, grid_search_width=5
 ):
     if initial_guess is None:
-        initial_guess = [(thresh_dim1 + thresh_dim2) / 2, 10]
+        initial_guess = [(thresh_depth1 + thresh_depth2) / 2, 10]
 
     def constraint(x):
-        control_dim, n_sample = x
-        return _continuous_error(control_dim, n_sample, noise_rate) - target_error
+        depth, n_sample = x
+        return _continuous_error(depth, n_sample, noise_rate) - target_error
 
     res = minimize(
         _cost,
         initial_guess,
-        bounds=[(thresh_dim1 // 3, thresh_dim2), (1, np.infty)],
+        bounds=[(thresh_depth1 // 3, thresh_depth2), (1, np.infty)],
         constraints={"type": "eq", "fun": constraint},
     )
 
     if not res["success"]:
         print(
-            f"Warning: optimization unsuccessful for target error {target_error}, damping strength {noise_rate}."
+            f"Warning: optimization unsuccessful for target error {target_error}, noise rate {noise_rate}."
         )
         print(res)
 
-    control_dim_float, n_samples_float = res["x"]
+    depth_float, n_samples_float = res["x"]
 
-    control_dim, n_samples = _grid_minimization(
-        _cost, (control_dim_float, n_samples_float), grid_search_width, constraint
+    depth, n_samples = _grid_minimization(
+        _cost, (depth_float, n_samples_float), grid_search_width, constraint
     )
 
-    return control_dim, n_samples
+    return depth, n_samples
 
 # Model specific functions
 
-def loglikelihood(samples, control_dim, noise_rate):
+def loglikelihood(samples, depth, noise_rate):
     return lambda x: np.mean(
-        np.log(pmf(np.array(samples), x, control_dim, noise_rate))
+        np.log(pmf(np.array(samples), x, depth, noise_rate))
     )
 
-def negloglikelihood(samples, control_dim, noise_rate):
-    return lambda x: -loglikelihood(samples, control_dim, noise_rate)(x)
+def negloglikelihood(samples, depth, noise_rate):
+    return lambda x: -loglikelihood(samples, depth, noise_rate)(x)
 
-def MLESinQPE_var_model(noise_rate, control_dim, n_samples):
-    a = -np.log(1 - np.exp(-noise_rate * (control_dim - 1))) / 2
+def MLESinQPE_var_model(noise_rate, depth, n_samples):
+    a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
-    FI = Fisher_information(int(control_dim), noise_rate)
+    FI = Fisher_information(int(depth), noise_rate)
     if n_samples == 0:
         return fail_prob * 2
     return fail_prob * 2 + (1 - fail_prob) * 1 / FI / n_samples
@@ -108,18 +108,18 @@ def bruteforce_minimize(f, N):
     est = ests[np.argmin(vals)]
     return est
 
-def _continuous_error(control_dim: float, n_sample: float, noise_rate):
-    int_ctrldim = int(control_dim)
-    interpolator = control_dim - int_ctrldim
-    err_0 = np.sqrt(MLESinQPE_var_model(noise_rate, int_ctrldim, n_sample))
-    err_1 = np.sqrt(MLESinQPE_var_model(noise_rate, int_ctrldim + 1, n_sample))
+def _continuous_error(depth: float, n_sample: float, noise_rate):
+    int_depth = int(depth)
+    interpolator = depth - int_depth
+    err_0 = np.sqrt(MLESinQPE_var_model(noise_rate, int_depth, n_sample))
+    err_1 = np.sqrt(MLESinQPE_var_model(noise_rate, int_depth + 1, n_sample))
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
 
 
 def _cost(x):
-    control_dim, n_sample = x
-    return (control_dim - 1) * n_sample
+    depth, n_sample = x
+    return depth * n_sample
 
 
 def _grid_minimization(fun, x0, width, constraint):

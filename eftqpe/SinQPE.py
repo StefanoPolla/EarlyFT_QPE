@@ -28,10 +28,9 @@ def SinQPE_prob_vec(phase, depth, noise_rate=0.0):
 
 def SinQPE_prob_func(x, true_phase, depth, noise_rate=0.0):
     # Continuous case
-    control_dim = depth + 1
     success_prob = np.exp(-depth * noise_rate)
     return (
-        success_prob * noiseless_SinQPE_prob_func(x - true_phase, control_dim + 1)
+        success_prob * noiseless_SinQPE_prob_func(x - true_phase, depth+2)
         + (1 - success_prob) / 2 / np.pi
     )
 
@@ -52,38 +51,39 @@ def dev_noiseless_SinQPE_prob_func(x, m):
     return _dev_SinQPE_fun(x, m) * noiseless_SinQPE_prob_func(x, m)
 
 
-def SinQPE_FI(control_dim, noise_rate, integral_range_multiplier=10):
-    if ~np.isfinite(control_dim) or control_dim < 0:
+def SinQPE_FI(depth, noise_rate, integral_range_multiplier=10):
+    if ~np.isfinite(depth) or depth < 1:
         return np.nan
 
     if noise_rate == 0.0:
 
         def integrand(x):
-            return _dev_SinQPE_fun(x, control_dim + 1) ** 2 * SinQPE_prob_func(
-                x, 0.0, control_dim, 0.0
+            return _dev_SinQPE_fun(x, depth + 2) ** 2 * SinQPE_prob_func(
+                x, 0.0, depth, 0.0
             )
 
-        FI = np.exp(-noise_rate * (control_dim - 1)) * quad(integrand, -np.pi, np.pi)[0]
+        FI = np.exp(-noise_rate * depth) * quad(integrand, -np.pi, np.pi)[0]
     else:
 
         def integrand(x):
-            return dev_noiseless_SinQPE_prob_func(x, control_dim + 1) ** 2 / SinQPE_prob_func(
-                x, 0.0, control_dim, noise_rate
+            return dev_noiseless_SinQPE_prob_func(x, depth + 2) ** 2 / SinQPE_prob_func(
+                x, 0.0, depth, noise_rate
             )
 
-        int_bound = min(integral_range_multiplier / control_dim, np.pi)
+        int_bound = min(integral_range_multiplier / (depth+1), np.pi)
 
         FI = (
-            np.exp(-2 * noise_rate * (control_dim - 1))
+            np.exp(-2 * noise_rate * depth)
             * quad(integrand, -int_bound, int_bound, limit=100)[0]
         )
 
     return FI
 
 
-def SinQPE_Holevo_error(control_dim, noise_rate=0.0):
+def SinQPE_Holevo_error(depth, noise_rate=0.0):
+    control_dim = depth + 1
     ests = np.arange(control_dim) * 2 * np.pi / control_dim
-    probs = SinQPE_prob_vec(0.0, control_dim, noise_rate)
+    probs = SinQPE_prob_vec(0.0, depth, noise_rate)
     return np.sqrt(np.sum(probs * (np.abs(np.exp(1j * ests) - 1)) ** 2))
 
 
