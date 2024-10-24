@@ -74,7 +74,7 @@ def _optimise_circuit_division(
 
 ### Error model
 
-def error_model(noise_rate, depth, n_samples):
+def error_bound(noise_rate, depth, n_samples):
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
@@ -99,8 +99,8 @@ def _cost(x):
 def _continuous_error(depth: float, n_sample: float, noise_rate):
     int_depth = int(depth)
     interpolator = depth - int_depth
-    err_0 = error_model(noise_rate, int_depth, n_sample)
-    err_1 = error_model(noise_rate, int_depth + 1, n_sample)
+    err_0 = error_bound(noise_rate, int_depth, n_sample)
+    err_1 = error_bound(noise_rate, int_depth + 1, n_sample)
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
 
