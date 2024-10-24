@@ -45,14 +45,14 @@ def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
     return int(control_dim), int(n_samples)
 
 def _OptMLESinQPE_midregime(
-    target_error, damp_strength, thresh_dim1, thresh_dim2, initial_guess=None, grid_search_width=5
+    target_error, noise_rate, thresh_dim1, thresh_dim2, initial_guess=None, grid_search_width=5
 ):
     if initial_guess is None:
         initial_guess = [(thresh_dim1 + thresh_dim2) / 2, 10]
 
     def constraint(x):
         control_dim, n_sample = x
-        return _continuous_error(control_dim, n_sample, damp_strength) - target_error
+        return _continuous_error(control_dim, n_sample, noise_rate) - target_error
 
     res = minimize(
         _cost,
@@ -63,7 +63,7 @@ def _OptMLESinQPE_midregime(
 
     if not res["success"]:
         print(
-            f"Warning: optimization unsuccessful for target error {target_error}, damping strength {damp_strength}."
+            f"Warning: optimization unsuccessful for target error {target_error}, damping strength {noise_rate}."
         )
         print(res)
 
@@ -77,18 +77,18 @@ def _OptMLESinQPE_midregime(
 
 # Model specific functions
 
-def loglikelihood(samples, control_dim, damp_strength):
+def loglikelihood(samples, control_dim, noise_rate):
     return lambda x: np.mean(
-        np.log(pmf(np.array(samples), x, control_dim, damp_strength))
+        np.log(pmf(np.array(samples), x, control_dim, noise_rate))
     )
 
-def negloglikelihood(samples, control_dim, damp_strength):
-    return lambda x: -loglikelihood(samples, control_dim, damp_strength)(x)
+def negloglikelihood(samples, control_dim, noise_rate):
+    return lambda x: -loglikelihood(samples, control_dim, noise_rate)(x)
 
-def MLESinQPE_var_model(damp_strength, control_dim, n_samples):
-    a = -np.log(1 - np.exp(-damp_strength * (control_dim - 1))) / 2
+def MLESinQPE_var_model(noise_rate, control_dim, n_samples):
+    a = -np.log(1 - np.exp(-noise_rate * (control_dim - 1))) / 2
     fail_prob = np.exp(-a * n_samples)
-    FI = Fisher_information(int(control_dim), damp_strength)
+    FI = Fisher_information(int(control_dim), noise_rate)
     if n_samples == 0:
         return fail_prob * 2
     return fail_prob * 2 + (1 - fail_prob) * 1 / FI / n_samples
@@ -108,11 +108,11 @@ def bruteforce_minimize(f, N):
     est = ests[np.argmin(vals)]
     return est
 
-def _continuous_error(control_dim: float, n_sample: float, damp_strength):
+def _continuous_error(control_dim: float, n_sample: float, noise_rate):
     int_ctrldim = int(control_dim)
     interpolator = control_dim - int_ctrldim
-    err_0 = np.sqrt(MLESinQPE_var_model(damp_strength, int_ctrldim, n_sample))
-    err_1 = np.sqrt(MLESinQPE_var_model(damp_strength, int_ctrldim + 1, n_sample))
+    err_0 = np.sqrt(MLESinQPE_var_model(noise_rate, int_ctrldim, n_sample))
+    err_1 = np.sqrt(MLESinQPE_var_model(noise_rate, int_ctrldim + 1, n_sample))
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
 
