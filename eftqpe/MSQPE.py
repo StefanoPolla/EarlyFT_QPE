@@ -6,7 +6,6 @@ from SinQPE import SinQPE_FI as Fisher_information
 
 
 ######### TO DO
-# separate discrete optimization from circuit division
 # add type hints
 # add long comment: optparams
 # add small comment: optimisecircuitdivision,errorbound, continuouserror, gridminimization
@@ -56,32 +55,20 @@ def _optimise_circuit_division(
 
     def constraint(x):
         depth, n_sample = x
-        return _continuous_error(depth, n_sample, noise_rate) - target_error
-
-    res = minimize(
-        _cost,
-        initial_guess,
-        bounds=[(min_depth, max_depth), (1, np.infty)],
-        constraints={"type": "eq", "fun": constraint},
-    )
-
-    if not res["success"]:
-        print(
-            f"Warning: optimization unsuccessful for target error {target_error}, noise rate {noise_rate}."
-        )
-        print(res)
-
-    depth_float, n_samples_float = res["x"]
-
-    depth, n_samples = _grid_minimization(
-        _cost, (depth_float, n_samples_float), grid_search_width, constraint
-    )
+        return _error_bound(depth, n_sample, noise_rate) - target_error
+    
+    depth, n_samples = _discrete_minimize(
+        fun = _cost, 
+        constraint = constraint,
+        initial_guess = initial_guess,
+        bounds = [(min_depth, max_depth), (1, np.infty)],
+        grid_search_width = grid_search_width)
 
     return depth, n_samples
 
 ### Error model
 
-def _error_bound(noise_rate, depth, n_samples):
+def _error_bound(depth, n_samples, noise_rate):
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
@@ -103,15 +90,43 @@ def _cost(x):
 
 ### Discrete optimization
 
-def _continuous_error(depth: float, n_sample: float, noise_rate):
-    int_depth = int(depth)
-    interpolator = depth - int_depth
-    err_0 = _error_bound(noise_rate, int_depth, n_sample)
-    err_1 = _error_bound(noise_rate, int_depth + 1, n_sample)
-    err = err_0 * (1 - interpolator) + err_1 * interpolator
-    return err
+def _discrete_minimize(fun, constraint, initial_guess, bounds, grid_search_width):
 
-def _grid_minimization(fun, x0, width, constraint):
+    continuous_constraint = _interpolate_constraint(constraint)
+    
+    res = minimize(
+        fun = fun,
+        x0 = initial_guess,
+        bounds = bounds,
+        constraints={"type": "eq", "fun": continuous_constraint},
+    )
+
+    if not res["success"]:
+        print(
+            f"Warning: optimization unsuccessful."
+        )
+        print(res)
+
+    x_float = res["x"]
+
+    x = _grid_search(
+        _cost, x_float, grid_search_width, constraint
+    )
+
+    return x
+
+def _interpolate_constraint(constraint):
+    def continuous_constraint(x):
+        depth, n_samples = x
+        int_depth = int(depth)
+        interpolator = depth - int_depth
+        err_0 = constraint((int_depth, n_samples))
+        err_1 = constraint((int_depth + 1, n_samples))
+        err = err_0 * (1 - interpolator) + err_1 * interpolator
+        return err
+    return continuous_constraint
+
+def _grid_search(fun, x0, width, constraint):
     x0_int = np.round(x0)
     grid = (
         np.array(
