@@ -3,7 +3,7 @@ from scipy.integrate import quad
 from scipy.optimize import minimize_scalar, minimize, basinhopping
 from eftqpe.utils import circ_dist
 
-from SinQPE import SinQPE_prob_func as pmf
+from SinQPE import SinQPE_loglikelihood as likelihood
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
@@ -76,11 +76,6 @@ def _OptMLESinQPE_midregime(
     return depth, n_samples
 
 # Model specific functions
-
-def loglikelihood(samples, depth, noise_rate):
-    return lambda x: np.mean(
-        np.log(pmf(np.array(samples), x, depth, noise_rate))
-    )
 
 def negloglikelihood(samples, depth, noise_rate):
     return lambda x: -loglikelihood(samples, depth, noise_rate)(x)
