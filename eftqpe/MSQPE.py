@@ -3,7 +3,6 @@ from scipy.integrate import quad
 from scipy.optimize import minimize_scalar, minimize, basinhopping
 from eftqpe.utils import circ_dist
 
-from SinQPE import SinQPE_loglikelihood as likelihood
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
@@ -97,19 +96,6 @@ def _negloglikelihood(samples, depth, noise_rate):
 def _cost(x):
     depth, n_sample = x
     return depth * n_sample
-
-def _bruteforce_minimize(f, N):
-    ests = []
-    vals = []
-    for j in range(N):
-        phase = j * 2 * np.pi / N
-        res = minimize_scalar(
-            f, method="bounded", bounds=(phase - 2 * np.pi / N, phase + 2 * np.pi / N)
-        )
-        ests.append(res["x"])
-        vals.append(res["fun"])
-    est = ests[np.argmin(vals)]
-    return est
 
 def _continuous_error(depth: float, n_sample: float, noise_rate):
     int_depth = int(depth)

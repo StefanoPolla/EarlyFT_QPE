@@ -86,9 +86,3 @@ def SinQPE_Holevo_error(depth, noise_rate=0.0):
     probs = SinQPE_prob_vec(0.0, depth, noise_rate)
     return np.sqrt(np.sum(probs * (np.abs(np.exp(1j * ests) - 1)) ** 2))
 
-
-def SinQPE_loglikelihood(samples, depth, noise_rate):
-    return lambda x: np.mean(
-        np.log(SinQPE_prob_func(np.array(samples), x, depth, noise_rate))
-    )
-

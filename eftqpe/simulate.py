@@ -39,14 +39,24 @@ def sample_SinQPE(true_phase, control_dim, damp_strength=0.0, use_ref_phase=True
     est = np.random.choice(ests, p=probs)
     return (est + ref_phase) % (2 * np.pi)
 
-
-
-
-def loglikelihood(samples, control_dim, damp_strength):
+def SinQPE_loglikelihood(samples, depth, noise_rate):
     return lambda x: np.mean(
-        np.log(SinQPE_prob_func(np.array(samples), x, control_dim, damp_strength))
+        np.log(SinQPE_prob_func(np.array(samples), x, depth, noise_rate))
     )
 
-
 def negloglikelihood(samples, control_dim, damp_strength):
-    return lambda x: -loglikelihood(samples, control_dim, damp_strength)(x)
+    return lambda x: -SinQPE_loglikelihood(samples, control_dim, damp_strength)(x)
+
+
+def bruteforce_minimize(f, N):
+    ests = []
+    vals = []
+    for j in range(N):
+        phase = j * 2 * np.pi / N
+        res = minimize_scalar(
+            f, method="bounded", bounds=(phase - 2 * np.pi / N, phase + 2 * np.pi / N)
+        )
+        ests.append(res["x"])
+        vals.append(res["fun"])
+    est = ests[np.argmin(vals)]
+    return est
