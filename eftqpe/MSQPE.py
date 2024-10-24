@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.integrate import quad
-from scipy.optimize import minimize_scalar, minimize, basinhopping
-from eftqpe.utils import circ_dist
+from scipy.optimize import minimize
 
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
