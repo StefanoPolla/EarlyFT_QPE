@@ -75,20 +75,25 @@ def _OptMLESinQPE_midregime(
 
     return depth, n_samples
 
-# Model specific functions
+# Error model
+
+def error_model(noise_rate, depth, n_samples):
+    #Probability of failure
+    a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
+    fail_prob = np.exp(-a * n_samples)
+    #Error if failure
+    fail_error = np.sqrt(2)
+    #Error if success
+    success_error = np.sqrt(1 / Fisher_information(int(depth), noise_rate) / n_samples)
+
+    if n_samples == 0:
+        return fail_error
+    return np.sqrt(fail_prob * fail_error**2 + (1 - fail_prob) * success_error**2)
+
+# Optimization
 
 def negloglikelihood(samples, depth, noise_rate):
     return lambda x: -loglikelihood(samples, depth, noise_rate)(x)
-
-def MLESinQPE_var_model(noise_rate, depth, n_samples):
-    a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
-    fail_prob = np.exp(-a * n_samples)
-    FI = Fisher_information(int(depth), noise_rate)
-    if n_samples == 0:
-        return fail_prob * 2
-    return fail_prob * 2 + (1 - fail_prob) * 1 / FI / n_samples
-
-# Optimization
 
 def bruteforce_minimize(f, N):
     ests = []
@@ -106,8 +111,8 @@ def bruteforce_minimize(f, N):
 def _continuous_error(depth: float, n_sample: float, noise_rate):
     int_depth = int(depth)
     interpolator = depth - int_depth
-    err_0 = np.sqrt(MLESinQPE_var_model(noise_rate, int_depth, n_sample))
-    err_1 = np.sqrt(MLESinQPE_var_model(noise_rate, int_depth + 1, n_sample))
+    err_0 = error_model(noise_rate, int_depth, n_sample)
+    err_1 = error_model(noise_rate, int_depth + 1, n_sample)
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
 
