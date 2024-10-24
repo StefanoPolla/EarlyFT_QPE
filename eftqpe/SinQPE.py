@@ -124,51 +124,6 @@ def sample_SinQPE(true_phase, control_dim, damp_strength=0.0, use_ref_phase=True
     return (est + ref_phase) % (2 * np.pi)
 
 
-def simulate_meanSinQPE(true_phase, control_dim, n_samples, damp_strength=0.0, use_ref_phase=True):
-    samples = [
-        np.exp(1j * sample_SinQPE(true_phase, control_dim, damp_strength, use_ref_phase))
-        for i in range(n_samples)
-    ]
-    est = np.angle(np.mean(samples))
-    error = circ_dist(est, true_phase)
-
-    cost = (control_dim - 1) * n_samples
-
-    return (error, cost)
-
-
-def simulate_medianSinQPE(
-    true_phase, control_dim, n_samples, damp_strength=0.0, use_ref_phase=True
-):
-    samples = [
-        sample_SinQPE(true_phase, control_dim, damp_strength, use_ref_phase)
-        for i in range(n_samples)
-    ]
-    est = np.median(samples)
-    error = circ_dist(est, true_phase)
-
-    cost = (control_dim - 1) * n_samples
-
-    return (error, cost)
-
-
-def OptMeanSinQPE_params(target_error, damp_strength=0.0):
-    thresh_error = (np.pi * damp_strength) ** (1 / 3)
-
-    if target_error > thresh_error:
-        n_samples = 1
-        control_dim = np.ceil(np.pi / target_error).astype(int)
-    else:
-        n_samples = np.ceil((thresh_error / target_error) ** 2).astype(int)
-        control_dim = np.floor((np.pi**2 / damp_strength) ** (1 / 3)).astype(int)
-    return control_dim, n_samples
-
-
-def simulate_OptMeanSinQPE(true_phase, target_error, damp_strength=0.0):
-    control_dim, n_samples = OptMeanSinQPE_params(target_error, damp_strength)
-    return simulate_meanSinQPE(true_phase, control_dim, n_samples, damp_strength)
-
-
 def loglikelihood(samples, control_dim, damp_strength):
     return lambda x: np.mean(
         np.log(SinQPE_prob_func(np.array(samples), x, control_dim, damp_strength))
@@ -199,21 +154,13 @@ def local_minimize(f, N, true_phase):
     )["x"]
 
 
-def simulate_MLESinQPE(true_phase, control_dim, n_samples, damp_strength, minimizer, use_ref_phase):
+def simulate_MLESinQPE(true_phase, control_dim, n_samples, damp_strength):
     samples = [
         sample_SinQPE(true_phase, control_dim, damp_strength, use_ref_phase)
         for i in range(n_samples)
     ]
     if n_samples > 1:
-        f = negloglikelihood(samples, control_dim, damp_strength)
-        if minimizer == "bruteforce":
-            est = bruteforce_minimize(f, control_dim)
-        elif minimizer == "local":
-            est = local_minimize(f, control_dim, true_phase)
-        elif minimizer == "simple":
-            est = minimize_scalar(f, method="bounded", bounds=(0, 2 * np.pi))["x"]
-        elif minimizer == "basinhopping":
-            est = basinhopping(f, np.angle(np.mean(samples)))["x"][0]
+        est = bruteforce_minimize(f, control_dim)
     else:
         est = samples[0]
     error = circ_dist(est, true_phase)
@@ -326,11 +273,9 @@ def simulate_OptMLESinQPE(
     true_phase,
     target_error,
     damp_strength=0.0,
-    minimizer="bruteforce",
-    use_ref_phase=True,
     grid_search_width=5,
 ):
     control_dim, n_samples = OptMLESinQPE_params(target_error, damp_strength, grid_search_width)
     return simulate_MLESinQPE(
-        true_phase, control_dim, n_samples, damp_strength, minimizer, use_ref_phase
+        true_phase, control_dim, n_samples, damp_strength
     )
