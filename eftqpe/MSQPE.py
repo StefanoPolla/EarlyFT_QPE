@@ -7,6 +7,8 @@ from SinQPE import SinQPE_prob_func as pmf
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
+### Algorithm constants
+
 # constant c1 such that T1 = floor(c1/gamma^(1/3)) is the maximal depth for which 1 sample is used
 DEPTH_FACTOR_1 = (2 / 3 * np.pi**2) ** (1 / 3)
 
@@ -16,23 +18,25 @@ DEPTH_FACTOR_2 = 1.0
 # Max number of samples in the intermediate regime used for calculating the threshold error
 MAX_NSHOT = 100
 
-def OptMLESinQPE_params(target_error, damp_strength=0.0, grid_search_width=5):
-    thresh_dim1 = int(DEPTH_FACTOR_1 * damp_strength ** (-1 / 3)) + 1
-    thresh_dim2 = int(DEPTH_FACTOR_2 / damp_strength) + 1
+### Optimal parameters choice
 
-    thresh_error1 = Holevo_error(thresh_dim1, damp_strength)
-    thresh_error2 = 1 / np.sqrt(Fisher_information(thresh_dim2, damp_strength) * MAX_NSHOT)
+def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
+    thresh_dim1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3)) + 1
+    thresh_dim2 = int(DEPTH_FACTOR_2 / noise_rate) + 1
+
+    thresh_error1 = Holevo_error(thresh_dim1, noise_rate)
+    thresh_error2 = 1 / np.sqrt(Fisher_information(thresh_dim2, noise_rate) * MAX_NSHOT)
 
     if target_error > thresh_error1:
         n_samples = 1
         control_dim = 1 + np.ceil(np.pi / target_error).astype(int)
     elif target_error < thresh_error2:
-        n_samples = np.ceil(1 / Fisher_information(thresh_dim2, damp_strength) / target_error**2).astype(int)
+        n_samples = np.ceil(1 / Fisher_information(thresh_dim2, noise_rate) / target_error**2).astype(int)
         control_dim = thresh_dim2
     else:
         control_dim, n_samples = _OptMLESinQPE_midregime(
             target_error,
-            damp_strength,
+            noise_rate,
             thresh_dim1,
             thresh_dim2,
             grid_search_width=grid_search_width,

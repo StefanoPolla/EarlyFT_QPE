@@ -15,10 +15,10 @@ def noiseless_SinQPE_prob_func(x, m):
     return v
 
 
-def SinQPE_prob_vec(phase, control_dim, damp_strength=0.0):
+def SinQPE_prob_vec(phase, control_dim, noise_rate=0.0):
     # Discrete case
     tmax = control_dim - 1
-    success_prob = np.exp(-tmax * damp_strength)
+    success_prob = np.exp(-tmax * noise_rate)
 
     diffs = phase - np.arange(control_dim) * 2 * np.pi / control_dim
     noiseless_probs = 2 * np.pi / control_dim * noiseless_SinQPE_prob_func(diffs, control_dim + 1)
