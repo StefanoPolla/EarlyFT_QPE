@@ -6,7 +6,7 @@ from eftqpe.utils import circ_dist
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
-### Algorithm constants
+### Algorithm constants for threshold errors calculation
 
 # constant c1 such that T1 = floor(c1/gamma^(1/3)) is the maximal depth for which 1 sample is used
 DEPTH_FACTOR_1 = (2 / 3 * np.pi**2) ** (1 / 3)
@@ -33,21 +33,21 @@ def OptMSQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
         n_samples = np.ceil(1 / Fisher_information(thresh_depth2, noise_rate) / target_error**2).astype(int)
         depth = thresh_depth2
     else:
-        depth, n_samples = _optimise_params(
+        depth, n_samples = _optimise_circuit_division(
             target_error,
             noise_rate,
-            thresh_depth1,
+            thresh_depth1 // 3,
             thresh_depth2,
-            grid_search_width=grid_search_width,
+            grid_search_width = grid_search_width,
         )
 
     return int(depth), int(n_samples)
 
-def _optimise_params(
-    target_error, noise_rate, thresh_depth1, thresh_depth2, initial_guess=None, grid_search_width=5
+def _optimise_circuit_division(
+    target_error, noise_rate, min_depth, max_depth, initial_guess=None, grid_search_width=5
 ):
     if initial_guess is None:
-        initial_guess = [(thresh_depth1 + thresh_depth2) / 2, 10]
+        initial_guess = [(min_depth + max_depth) / 2, 10]
 
     def constraint(x):
         depth, n_sample = x
@@ -56,7 +56,7 @@ def _optimise_params(
     res = minimize(
         _cost,
         initial_guess,
-        bounds=[(thresh_depth1 // 3, thresh_depth2), (1, np.infty)],
+        bounds=[(min_depth, max_depth), (1, np.infty)],
         constraints={"type": "eq", "fun": constraint},
     )
 
@@ -89,13 +89,14 @@ def error_model(noise_rate, depth, n_samples):
         return fail_error
     return np.sqrt(fail_prob * fail_error**2 + (1 - fail_prob) * success_error**2)
 
-### Optimization
 
-def _negloglikelihood(samples, depth, noise_rate):
-    return lambda x: -loglikelihood(samples, depth, noise_rate)(x)
+### Cost function
+
 def _cost(x):
     depth, n_sample = x
     return depth * n_sample
+
+### Discrete optimization
 
 def _continuous_error(depth: float, n_sample: float, noise_rate):
     int_depth = int(depth)
