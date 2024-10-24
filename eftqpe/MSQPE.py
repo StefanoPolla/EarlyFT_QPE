@@ -6,6 +6,7 @@ from SinQPE import SinQPE_FI as Fisher_information
 
 
 ######### TO DO
+# separate discrete optimization from circuit division
 # add type hints
 # add long comment: optparams
 # add small comment: optimisecircuitdivision,errorbound, continuouserror, gridminimization
