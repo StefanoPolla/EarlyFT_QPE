@@ -20,7 +20,7 @@ MAX_NSHOT = 100
 
 ### Optimal parameters choice
 
-def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
+def OptMSQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
     thresh_depth1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3))
     thresh_depth2 = int(DEPTH_FACTOR_2 / noise_rate)
 
@@ -34,7 +34,7 @@ def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
         n_samples = np.ceil(1 / Fisher_information(thresh_depth2, noise_rate) / target_error**2).astype(int)
         depth = thresh_depth2
     else:
-        depth, n_samples = _OptMLESinQPE_midregime(
+        depth, n_samples = _optimise_params(
             target_error,
             noise_rate,
             thresh_depth1,
@@ -44,7 +44,7 @@ def OptMLESinQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
 
     return int(depth), int(n_samples)
 
-def _OptMLESinQPE_midregime(
+def _optimise_params(
     target_error, noise_rate, thresh_depth1, thresh_depth2, initial_guess=None, grid_search_width=5
 ):
     if initial_guess is None:
@@ -75,7 +75,7 @@ def _OptMLESinQPE_midregime(
 
     return depth, n_samples
 
-# Error model
+### Error model
 
 def error_model(noise_rate, depth, n_samples):
     #Probability of failure
@@ -90,12 +90,15 @@ def error_model(noise_rate, depth, n_samples):
         return fail_error
     return np.sqrt(fail_prob * fail_error**2 + (1 - fail_prob) * success_error**2)
 
-# Optimization
+### Optimization
 
-def negloglikelihood(samples, depth, noise_rate):
+def _negloglikelihood(samples, depth, noise_rate):
     return lambda x: -loglikelihood(samples, depth, noise_rate)(x)
+def _cost(x):
+    depth, n_sample = x
+    return depth * n_sample
 
-def bruteforce_minimize(f, N):
+def _bruteforce_minimize(f, N):
     ests = []
     vals = []
     for j in range(N):
@@ -115,12 +118,6 @@ def _continuous_error(depth: float, n_sample: float, noise_rate):
     err_1 = error_model(noise_rate, int_depth + 1, n_sample)
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
-
-
-def _cost(x):
-    depth, n_sample = x
-    return depth * n_sample
-
 
 def _grid_minimization(fun, x0, width, constraint):
     x0_int = np.round(x0)
