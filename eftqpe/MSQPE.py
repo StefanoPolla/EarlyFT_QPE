@@ -4,6 +4,12 @@ from scipy.optimize import minimize
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
+
+######### TO DO
+# add type hints
+# add long comment: optparams
+# add small comment: optimisecircuitdivision,errorbound, continuouserror, gridminimization
+
 ### Algorithm constants for threshold errors calculation
 
 # constant c1 such that T1 = floor(c1/gamma^(1/3)) is the maximal depth for which 1 sample is used
@@ -74,7 +80,7 @@ def _optimise_circuit_division(
 
 ### Error model
 
-def error_bound(noise_rate, depth, n_samples):
+def _error_bound(noise_rate, depth, n_samples):
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
@@ -99,8 +105,8 @@ def _cost(x):
 def _continuous_error(depth: float, n_sample: float, noise_rate):
     int_depth = int(depth)
     interpolator = depth - int_depth
-    err_0 = error_bound(noise_rate, int_depth, n_sample)
-    err_1 = error_bound(noise_rate, int_depth + 1, n_sample)
+    err_0 = _error_bound(noise_rate, int_depth, n_sample)
+    err_1 = _error_bound(noise_rate, int_depth + 1, n_sample)
     err = err_0 * (1 - interpolator) + err_1 * interpolator
     return err
 
