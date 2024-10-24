@@ -32,7 +32,7 @@ def OptMSQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
 
     if target_error > thresh_error1:
         n_samples = 1
-        depth = np.ceil(np.pi / target_error).astype(int)
+        depth = np.ceil(np.pi / np.arctan(target_error) - 2).astype(int)
     elif target_error < thresh_error2:
         n_samples = np.ceil(1 / Fisher_information(thresh_depth2, noise_rate) / target_error**2).astype(int)
         depth = thresh_depth2
