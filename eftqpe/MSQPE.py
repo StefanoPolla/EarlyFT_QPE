@@ -4,6 +4,8 @@ from scipy.optimize import minimize
 from SinQPE import SinQPE_Holevo_error as Holevo_error
 from SinQPE import SinQPE_FI as Fisher_information
 
+from collections.abc import Callable
+
 
 ######### TO DO
 # add type hints
@@ -23,7 +25,12 @@ MAX_NSHOT = 100
 
 ### Optimal parameters choice
 
-def OptMSQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
+def OptMSQPE_params(
+        target_error: float,
+        noise_rate: float = 0.0,
+        grid_search_width: int = 5
+        ) -> tuple[int, int]:
+    
     thresh_depth1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3))
     thresh_depth2 = int(DEPTH_FACTOR_2 / noise_rate)
 
@@ -45,15 +52,20 @@ def OptMSQPE_params(target_error, noise_rate=0.0, grid_search_width=5):
             grid_search_width = grid_search_width,
         )
 
-    return int(depth), int(n_samples)
+    return depth, n_samples
 
 def _optimise_circuit_division(
-    target_error, noise_rate, min_depth, max_depth, initial_guess=None, grid_search_width=5
-):
+    target_error: float,
+    noise_rate: float,
+    min_depth: int,
+    max_depth: int,
+    initial_guess: tuple[int,int] | None = None,
+    grid_search_width: int = 5
+) -> tuple[int, int]:
     if initial_guess is None:
-        initial_guess = [(min_depth + max_depth) / 2, 10]
+        initial_guess = [(min_depth + max_depth) // 2, 10]
 
-    def constraint(x):
+    def constraint(x: tuple[int, int | float]) -> float:
         depth, n_sample = x
         return _error_bound(depth, n_sample, noise_rate) - target_error
     
@@ -68,7 +80,11 @@ def _optimise_circuit_division(
 
 ### Error model
 
-def _error_bound(depth, n_samples, noise_rate):
+def _error_bound(
+        depth: int,
+        n_samples: int | float,
+        noise_rate: float
+        ) -> float:
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
@@ -84,13 +100,19 @@ def _error_bound(depth, n_samples, noise_rate):
 
 ### Cost function
 
-def _cost(x):
+def _cost(x: tuple[int | float, int | float]) -> int | float:
     depth, n_sample = x
     return depth * n_sample
 
 ### Discrete optimization
 
-def _discrete_minimize(fun, constraint, initial_guess, bounds, grid_search_width):
+def _discrete_minimize(
+        fun: Callable[[tuple[float, float]], float],
+        constraint: Callable[[tuple[int, int | float]], float],
+        initial_guess: tuple[int, int],
+        bounds: tuple[tuple[int | float, int | float], tuple[int | float, int | float]],
+        grid_search_width: int
+        ) -> tuple[int, int]:
 
     continuous_constraint = _interpolate_constraint(constraint)
     
@@ -115,7 +137,9 @@ def _discrete_minimize(fun, constraint, initial_guess, bounds, grid_search_width
 
     return x
 
-def _interpolate_constraint(constraint):
+def _interpolate_constraint(
+        constraint: Callable[[int, int | float], float]
+        ) -> Callable[[float, float], float]:
     def continuous_constraint(x):
         depth, n_samples = x
         int_depth = int(depth)
@@ -126,7 +150,12 @@ def _interpolate_constraint(constraint):
         return err
     return continuous_constraint
 
-def _grid_search(fun, x0, width, constraint):
+def _grid_search(
+        fun: Callable[[int, int | float], float],
+        x0: tuple[float, float],
+        width: int,
+        constraint: Callable[[int, int | float], float]
+        ):
     x0_int = np.round(x0)
     grid = (
         np.array(
