@@ -8,8 +8,6 @@ from collections.abc import Callable
 
 
 ######### TO DO
-# add type hints
-# add long comment: optparams
 # add small comment: optimisecircuitdivision,errorbound, continuouserror, gridminimization
 
 ### Algorithm constants for threshold errors calculation
@@ -30,7 +28,21 @@ def OptMSQPE_params(
         noise_rate: float = 0.0,
         grid_search_width: int = 5
         ) -> tuple[int, int]:
-    
+    """
+    Optimal parameters for the MS-QPE (Mulit-circuit Sine-state Quantum Phase Estimation)
+    to achieve a given precision with a fixed noise rate.
+
+    Args:
+        target_error (float): Desired precision for the phase estimation, quantified as the expected Holevo error [Eq. (A9)].
+        noise_rate (float): Physical noise rate per application of the unitary [gamma in Eq. (B1)].
+        grid_search_width (int): Width of grid search for optimizing circuit parameters.
+
+    Returns:
+        tuple:
+            depth (int): Optimal depth for the circuit in terms of uses of the unitary [\mathcal{T} in Alg. 14].
+            n_samples (int): Number of measurement samples required to achieve the target error [M in Alg. 14].
+    """
+
     thresh_depth1 = int(DEPTH_FACTOR_1 * noise_rate ** (-1 / 3))
     thresh_depth2 = int(DEPTH_FACTOR_2 / noise_rate)
 
@@ -54,6 +66,9 @@ def OptMSQPE_params(
 
     return depth, n_samples
 
+
+### Ancillary functions
+
 def _optimise_circuit_division(
     target_error: float,
     noise_rate: float,
@@ -62,6 +77,9 @@ def _optimise_circuit_division(
     initial_guess: tuple[int,int] | None = None,
     grid_search_width: int = 5
 ) -> tuple[int, int]:
+    """
+    Optimal parameters for MSQPE in the intermidiete regime
+    """
     if initial_guess is None:
         initial_guess = [(min_depth + max_depth) // 2, 10]
 
@@ -78,13 +96,16 @@ def _optimise_circuit_division(
 
     return depth, n_samples
 
-### Error model
+##### Error model
 
 def _error_bound(
         depth: int,
         n_samples: int | float,
         noise_rate: float
         ) -> float:
+    '''
+    Error bound for fixed circuit parameters [Eq. (B11)]
+    '''
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
@@ -98,21 +119,25 @@ def _error_bound(
     return np.sqrt(fail_prob * fail_error**2 + (1 - fail_prob) * success_error**2)
 
 
-### Cost function
+##### Cost function
 
 def _cost(x: tuple[int | float, int | float]) -> int | float:
     depth, n_sample = x
     return depth * n_sample
 
-### Discrete optimization
+##### Discrete optimization
 
 def _discrete_minimize(
         fun: Callable[[tuple[float, float]], float],
         constraint: Callable[[tuple[int, int | float]], float],
         initial_guess: tuple[int, int],
         bounds: tuple[tuple[int | float, int | float], tuple[int | float, int | float]],
-        grid_search_width: int
+        grid_search_width: int = 5
         ) -> tuple[int, int]:
+    """
+    Constrained minimization of a function of integers,
+    by searching the grid around the minimum of the continuous version of the problem.
+    """
 
     continuous_constraint = _interpolate_constraint(constraint)
     
@@ -140,6 +165,9 @@ def _discrete_minimize(
 def _interpolate_constraint(
         constraint: Callable[[int, int | float], float]
         ) -> Callable[[float, float], float]:
+    """
+    Transforms a function of a real number and an integer into a function of 2 reals numbers by interpolation.
+    """
     def continuous_constraint(x):
         depth, n_samples = x
         int_depth = int(depth)
@@ -156,6 +184,9 @@ def _grid_search(
         width: int,
         constraint: Callable[[int, int | float], float]
         ):
+    """
+    Brute-force constrained minimization by grid search around x0.
+    """
     x0_int = np.round(x0)
     grid = (
         np.array(
