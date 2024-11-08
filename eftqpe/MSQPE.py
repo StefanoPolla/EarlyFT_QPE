@@ -6,10 +6,6 @@ from SinQPE import SinQPE_FI as Fisher_information
 
 from collections.abc import Callable
 
-
-######### TO DO
-# add small comment: optimisecircuitdivision,errorbound, continuouserror, gridminimization
-
 ### Algorithm constants for threshold errors calculation
 
 # constant c1 such that T1 = floor(c1/gamma^(1/3)) is the maximal depth for which 1 sample is used
@@ -30,11 +26,11 @@ def OptMSQPE_params(
         ) -> tuple[int, int]:
     """
     Optimal parameters for the MS-QPE (Mulit-circuit Sine-state Quantum Phase Estimation)
-    to achieve a given precision with a fixed noise rate.
+    to achieve a given precision with global depolarising noise.
 
     Args:
         target_error (float): Desired precision for the phase estimation, quantified as the expected Holevo error [Eq. (A9)].
-        noise_rate (float): Physical noise rate per application of the unitary [gamma in Eq. (B1)].
+        noise_rate (float): Noise rate per application of the unitary [gamma in Eq. (B1)].
         grid_search_width (int): Width of grid search for optimizing circuit parameters.
 
     Returns:
@@ -78,7 +74,7 @@ def _optimise_circuit_division(
     grid_search_width: int = 5
 ) -> tuple[int, int]:
     """
-    Optimal parameters for MSQPE in the intermidiete regime
+    Optimal parameters for MSQPE in the intermidiete regime.
     """
     if initial_guess is None:
         initial_guess = [(min_depth + max_depth) // 2, 10]
@@ -104,18 +100,20 @@ def _error_bound(
         noise_rate: float
         ) -> float:
     '''
-    Error bound for fixed circuit parameters [Eq. (B11)]
+    Error bound for fixed circuit parameters [Eq. (B11)].
     '''
     #Probability of failure
     a = -np.log(1 - np.exp(-noise_rate * depth)) / 2
     fail_prob = np.exp(-a * n_samples)
     #Error if failure
     fail_error = np.sqrt(2)
-    #Error if success
-    success_error = np.sqrt(1 / Fisher_information(int(depth), noise_rate) / n_samples)
 
     if n_samples == 0:
         return fail_error
+    
+    #Error if success
+    success_error = np.sqrt(1 / Fisher_information(int(depth), noise_rate) / n_samples)
+
     return np.sqrt(fail_prob * fail_error**2 + (1 - fail_prob) * success_error**2)
 
 
@@ -183,7 +181,7 @@ def _grid_search(
         x0: tuple[float, float],
         width: int,
         constraint: Callable[[int, int | float], float]
-        ):
+        ) -> tuple[int, int]:
     """
     Brute-force constrained minimization by grid search around x0.
     """
