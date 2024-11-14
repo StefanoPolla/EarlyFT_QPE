@@ -2,8 +2,8 @@ from collections.abc import Callable
 
 import numpy as np
 from scipy.optimize import minimize
-from SinQPE import SinQPE_FI as Fisher_information
-from SinQPE import SinQPE_Holevo_error as Holevo_error
+from eftqpe.SinQPE import SinQPE_FI as Fisher_information
+from eftqpe.SinQPE import SinQPE_Holevo_error as Holevo_error
 
 ### Algorithm constants for threshold errors calculation
 
@@ -19,7 +19,7 @@ MAX_NSHOT = 100
 ### Optimal parameters choice
 
 
-def OptMSQPE_params(
+def opt_params(
     target_error: float, noise_rate: float = 0.0, grid_search_width: int = 5
 ) -> tuple[int, int]:
     """
@@ -34,7 +34,7 @@ def OptMSQPE_params(
 
     Returns:
         tuple:
-            depth (int): Optimal depth for the circuit in terms of uses of the unitary [\mathcal{T}
+            depth (int): Optimal depth for the circuit in terms of uses of the unitary [mathcal{T}
                 in Alg. 14].
             n_samples (int): Number of measurement samples required to achieve the target error [M
                 in Alg. 14].

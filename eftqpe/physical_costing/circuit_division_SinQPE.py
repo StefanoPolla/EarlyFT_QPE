@@ -7,7 +7,7 @@ from qualtran.surface_code.ccz2t_cost_model import (
     iter_ccz2t_factories,
 )
 
-from eftqpe.SinQPE import OptMLESinQPE_params
+from eftqpe.MSQPE import opt_params
 
 
 def opt_circuit_subdivision(epsilon: float, gamma: float) -> Tuple[int, int]:
@@ -21,7 +21,7 @@ def opt_circuit_subdivision(epsilon: float, gamma: float) -> Tuple[int, int]:
         T_max: number of unitary oracle calls within a circuit
         N_rep: number of repetitions of the circuit
     """
-    return OptMLESinQPE_params(epsilon, gamma)
+    return opt_params(epsilon, gamma)
 
 
 def ftqc_physical_cost(

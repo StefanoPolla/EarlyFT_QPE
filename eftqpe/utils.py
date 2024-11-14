@@ -1,7 +1,6 @@
+from typing import List, Sequence, Tuple
+
 import numpy as np
-from itertools import product
-from tqdm import tqdm
-from typing import Sequence, List, Tuple
 
 
 def make_decreasing_function(x: Sequence, y: Sequence) -> Tuple[List, List]:
