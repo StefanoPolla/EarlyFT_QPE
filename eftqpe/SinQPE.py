@@ -20,13 +20,16 @@ def SinQPE_Holevo_error(depth: int, noise_rate: float = 0.0) -> float:
 
 def SinQPE_FI(depth: int, noise_rate: float, integral_range_multiplier: float = 10) -> float:
     '''
+    Fisher Information of the probability distribution of the Sin-state QPE circuit [Fig. 7]
+    with global depolarising noise.
+
     Args:
         depth (int): Depth of the circuit in terms of uses of the unitary.
         noise_rate (float): Noise rate per application of the unitary [gamma in Eq. (B1)].
         integral_range_multiplier (float): Multiplier for the integration range for numerical stability.
 
     Returns:
-        float: Holevo error [(Eq. (A16))].
+        float: Fisher Information [(Eq. (A16))].
     '''
     if ~np.isfinite(depth) or depth < 1:
         return np.nan
@@ -36,15 +39,15 @@ def SinQPE_FI(depth: int, noise_rate: float, integral_range_multiplier: float = 
     if noise_rate == 0.:
 
         def integrand(x):
-            return dev_log_SinQPE_fun(x, 0., depth) ** 2 * SinQPE_prob_func(
-                x, 0., depth, 0.
+            return derivative_log_SinQPE_fun(x, depth) ** 2 * SinQPE_prob_func(
+                x, depth, 0.
             )
 
     else:
 
         def integrand(x):
-            return dev_noiseless_SinQPE_prob_func(x, 0., depth) ** 2 / SinQPE_prob_func(
-                x, 0., depth, noise_rate
+            return derivative_noiseless_SinQPE_prob_func(x, depth) ** 2 / SinQPE_prob_func(
+                x, depth, noise_rate
             )
 
     FI = (
@@ -70,17 +73,17 @@ def SinQPE_prob_vec(true_phase: float, depth: int, noise_rate: float = 0.0) -> n
     control_dim = depth + 1
     x = np.arange(control_dim) * 2 * np.pi / control_dim
 
-    return 2 * np.pi / control_dim * SinQPE_prob_func(x, true_phase, depth, noise_rate)
+    return 2 * np.pi / control_dim * SinQPE_prob_func(x - true_phase, depth, noise_rate)
 
 
-def SinQPE_prob_func(x: float | np.ndarray, true_phase: float, depth: int, noise_rate: float = 0.0) -> float | np.ndarray:
+def SinQPE_prob_func(delta_phi: float | np.ndarray, depth: int, noise_rate: float = 0.0) -> float | np.ndarray:
     """
-    Continuous case of probability in the Sin-state QPE circuit [Fig. 7]
+    Average robability of a phase error delta_phi in the Sin-state QPE circuit [Fig. 7]
     with global depolarising noise.
 
     Args:
-        x (float | np.ndarray): Measurement outcome value.
-        true_phase (float): True phase value to estimate.
+        delta_phi (float | np.ndarray): Phase difference (if the obtained bitstring is x, and the true value is phi,
+            then delta_phi = 2pi x/(depth+1) - phi).
         depth (int): Depth of the circuit in terms of uses of the unitary.
         noise_rate (float): Noise rate per application of the unitary [gamma in Eq. (B1)].
 
@@ -88,62 +91,60 @@ def SinQPE_prob_func(x: float | np.ndarray, true_phase: float, depth: int, noise
         float | np.ndarray: Probability of observing the outcome(s) `x`.
     """
     success_prob = np.exp(-depth * noise_rate)
-    return success_prob * noiseless_SinQPE_prob_func(x, true_phase, depth) + (1 - success_prob) / (2 * np.pi)
+    return success_prob * noiseless_SinQPE_prob_func(delta_phi, depth) + (1 - success_prob) / (2 * np.pi)
 
-def noiseless_SinQPE_prob_func(x: float | np.ndarray, true_phase: float, depth: int) -> np.ndarray:
+def noiseless_SinQPE_prob_func(delta_phi: float | np.ndarray, depth: int) -> np.ndarray:
     """
     Continuous case of probability in the Sin-state QPE circuit [Fig. 7] without noise.
 
     Args:
-        x (float | np.ndarray): Measurement outcome value.
-        true_phase (float): True phase value to estimate.
+        delta_phi (float | np.ndarray): Phase difference (if the obtained bitstring is x, and the true value is phi,
+            then delta_phi = 2pi x/(depth+1) - phi).
         depth (int): Depth of the circuit in terms of uses of the unitary.
 
     Returns:
         float | np.ndarray: Probability of observing the outcome(s) `x`.
     """
     m = depth + 2
-    diff = x - true_phase
     v = (1 / (2 * np.pi) * np.sin(np.pi / m) ** 2 / m
-         * (1 + np.cos(m * diff))
-         / (2 * np.sin(diff / 2 + np.pi / (2 * m)) * np.sin(diff / 2 - np.pi / (2 * m))) ** 2)
+         * (1 + np.cos(m * delta_phi))
+         / (2 * np.sin(delta_phi / 2 + np.pi / (2 * m)) * np.sin(delta_phi / 2 - np.pi / (2 * m))) ** 2)
     v = np.array(v)
-    v[np.cos(diff) == np.cos(np.pi / m)] = m / (4 * np.pi)
+    v[np.cos(delta_phi) == np.cos(np.pi / m)] = m / (4 * np.pi)
     return v
 
-def dev_noiseless_SinQPE_prob_func(x: float | np.ndarray, true_phase: float, depth: int) -> np.ndarray:
+def derivative_noiseless_SinQPE_prob_func(delta_phi: float | np.ndarray, depth: int) -> np.ndarray:
     """
     Derivative of the noiseless probability function for the Sin-state QPE circuit [Fig. 7]
     with respect to the true phase.
 
     Args:
-        x (float | np.ndarray): Measurement outcome value.
-        true_phase (float): True phase value to estimate.
+        delta_phi (float | np.ndarray): Phase difference (if the obtained bitstring is x, and the true value is phi,
+            then delta_phi = 2pi x/(depth+1) - phi).
         depth (int): Depth of the circuit in terms of uses of the unitary.
 
     Returns:
         float | np.ndarray: Derivative of the probability function for `x`.
     """
-    return dev_log_SinQPE_fun(x, true_phase, depth) * noiseless_SinQPE_prob_func(x, true_phase, depth)
+    return derivative_log_SinQPE_fun(delta_phi, depth) * noiseless_SinQPE_prob_func(delta_phi, depth)
 
-def dev_log_SinQPE_fun(x: float | np.ndarray, true_phase: float, depth: int) -> np.ndarray:
+def derivative_log_SinQPE_fun(delta_phi: float | np.ndarray, depth: int) -> np.ndarray:
     """
     Derivative of logarithm of the noiseless probability function for the Sin-state QPE circuit [Fig. 7]
     with respect to the true phase.
 
     Args:
-        x (float | np.ndarray): Measurement outcome value.
-        true_phase (float): True phase value to estimate.
+        delta_phi (float | np.ndarray): Phase difference (if the obtained bitstring is x, and the true value is phi,
+            then delta_phi = 2pi x/(depth+1) - phi).
         depth (int): Depth of the circuit in terms of uses of the unitary.
 
     Returns:
         float | np.ndarray: Derivative of the logarithm of the probability function for `x`.
     """
     m = depth + 2
-    diff = x - true_phase
-    v = -m * np.tan(m * diff / 2) - np.sin(diff) / (np.sin(diff / 2 + np.pi / (2 * m)) * np.sin(diff / 2 - np.pi / (2 * m)))
+    v = -m * np.tan(m * delta_phi / 2) - np.sin(delta_phi) / (np.sin(delta_phi / 2 + np.pi / (2 * m)) * np.sin(delta_phi / 2 - np.pi / (2 * m)))
     v = np.array(v)
-    v[np.cos(diff) == np.cos(np.pi / m)] = -1 / np.tan(np.pi / m)
+    v[np.cos(delta_phi) == np.cos(np.pi / m)] = -1 / np.tan(np.pi / m)
     return v
 
 
