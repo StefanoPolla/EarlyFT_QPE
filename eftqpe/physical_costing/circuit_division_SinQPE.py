@@ -8,6 +8,7 @@ from qualtran.surface_code.ccz2t_cost_model import (
 )
 
 from eftqpe.MSQPE import opt_params
+from eftqpe.physical_costing.ancillary_cost import ancillary_cost
 
 
 def opt_circuit_subdivision(epsilon: float, gamma: float) -> Tuple[int, int]:
@@ -41,7 +42,7 @@ def ftqc_physical_cost(
         error_budget: error budget for the circuit
         magic_per_unitary: number of Toffoli gates per unitary oracle call or MagicCount
             object with the number of Toffoli and T gates.
-        n_algo_qubits: number of logical data qubits (including ancillas)
+        n_algo_qubits: number of logical data qubits (incl. qubitization ancillas, excl. QPE ancillas)
         phys_err: physical error rate (per pyhsical gate, arXiv:1808.06709)
         n_factories: number of CCZ factories to use in parallel
     """
@@ -51,9 +52,14 @@ def ftqc_physical_cost(
     if not isinstance(tot_magic, MagicCount):
         tot_magic = MagicCount(n_ccz = tot_magic)
 
+    #  add ancillary costs
+    tot_magic += ancillary_cost(T_max + 1)
+    control_qubits = int(np.ceil(T_max + 1))
+    tot_qubits = n_algo_qubits + control_qubits
+
     cost, factory, data_block = get_ccz2t_costs_from_grid_search(
         n_magic=tot_magic,
-        n_algo_qubits=n_algo_qubits,
+        n_algo_qubits=tot_qubits,
         error_budget=error_budget,
         phys_err=phys_err,
         factory_iter=iter_ccz2t_factories(n_factories=n_factories),
@@ -85,7 +91,7 @@ def multicircuit_physical_cost(
         gamma: depolarizing error rate per unitary oracle call
         magic_per_unitary: number of Toffoli gates per unitary oracle call or MagicCount
             object with the number of Toffoli and T gates.
-        n_algo_qubits: number of logical data qubits (including ancillas)
+        n_algo_qubits: number of logical data qubits (incl. qubitization ancillas, excl. QPE ancillas)
         phys_err: physical error rate (per pyhsical gate, arXiv:1808.06709)
         n_factories: number of CCZ factories to use in parallel
 
@@ -107,9 +113,14 @@ def multicircuit_physical_cost(
     if not isinstance(tot_magic, MagicCount):
         tot_magic = MagicCount(n_ccz = tot_magic)
 
+     #  add ancillary costs
+    tot_magic += ancillary_cost(T_max + 1)
+    control_qubits = int(np.ceil(T_max + 1))
+    tot_qubits = n_algo_qubits + control_qubits
+
     cost, factory, data_block = get_ccz2t_costs_from_grid_search(
         n_magic=tot_magic,
-        n_algo_qubits=n_algo_qubits,
+        n_algo_qubits=tot_qubits,
         error_budget=error_budget,
         phys_err=phys_err,
         factory_iter=iter_ccz2t_factories(n_factories=n_factories),
