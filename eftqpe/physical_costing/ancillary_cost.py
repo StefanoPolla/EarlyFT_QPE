@@ -17,7 +17,7 @@ def qft_cost(dimension: int) -> MagicCount:
     qft = QFTPhaseGradient(bitsize)
 
     # in phase gradient QFT, all T gates are used for implementing Toffolis
-    cost = MagicCount(n_ccz = qft.t_complexity.t / 4)
+    cost = MagicCount(n_ccz = qft.t_complexity().t / 4)
 
     return cost
 
@@ -35,7 +35,7 @@ def sin_state_cost(dimension: int) -> MagicCount:
     state_prep = LPResourceState(bitsize)
 
     # in phase gradient QFT, all T gates are used for implementing Toffolis
-    cost = MagicCount(n_ccz = state_prep.t_complexity.t / 4)
+    cost = MagicCount(n_ccz = state_prep.t_complexity().t / 4)
 
     return cost
 
