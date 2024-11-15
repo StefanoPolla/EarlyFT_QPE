@@ -72,12 +72,12 @@ def fermi_hubbard_ftqc_physical_cost(side, error_budget = 0.01, delta_e = 0.01, 
     Wrapper of ftqc_physical_cost for the square fermi-hubbard model with standard parameters.
     """
     ccz_count, total_qubits, qlambda = fermi_hubbard_walk_costs(side)
-    toffoli_per_unitary = ccz_count # TODO change to general magic count
+    magic_per_unitary = ccz_count 
 
     cost = ftqc_physical_cost(
         epsilon=delta_e / qlambda,
         error_budget=error_budget,
-        toffoli_per_unitary=toffoli_per_unitary,
+        magic_per_unitary=magic_per_unitary,
         n_algo_qubits=total_qubits,
         n_factories=n_factories,
     )
