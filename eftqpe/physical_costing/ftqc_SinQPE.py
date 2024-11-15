@@ -6,9 +6,17 @@ from qualtran.surface_code.ccz2t_cost_model import (
 )
 from qualtran.surface_code import MagicCount
 
+from eftqpe.physical_costing.ancillary_cost import ancillary_cost
+
 
 def ftqc_physical_cost(
-    epsilon, error_budget, toffoli_per_unitary, n_algo_qubits, *, phys_err=0.001, n_factories=1
+    epsilon: float,
+    error_budget: float,
+    magic_per_unitary: int | MagicCount,
+    n_algo_qubits: int,
+    *,
+    phys_err=0.001,
+    n_factories=1,
 ):
     """
     Physical cost of a single run of the optimal Sin-QPE circuit with fixed error probability
@@ -31,12 +39,19 @@ def ftqc_physical_cost(
             footprint (int): total number of qubits for the algorithm
     """
     T_max = int(np.ceil(np.pi / epsilon))
-    n_toffoli = T_max * toffoli_per_unitary
+    
+    tot_magic = T_max * magic_per_unitary
+    if not isinstance(tot_magic, MagicCount):
+        tot_magic = MagicCount(n_ccz = tot_magic)
 
-    n_magic = MagicCount(n_ccz=n_toffoli)
+    #  add ancillary costs
+    tot_magic += ancillary_cost(T_max + 1)
+    control_qubits = int(np.ceil(np.log(T_max + 1)))
+    tot_qubits = n_algo_qubits + control_qubits
+
     cost, factory, data_block = get_ccz2t_costs_from_grid_search(
-        n_magic=n_magic,
-        n_algo_qubits=n_algo_qubits,
+        n_magic=tot_magic,
+        n_algo_qubits=tot_qubits,
         error_budget=error_budget,
         phys_err=phys_err,
         factory_iter=iter_ccz2t_factories(n_factories=n_factories),
