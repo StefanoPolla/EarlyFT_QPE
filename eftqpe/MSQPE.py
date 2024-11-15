@@ -55,15 +55,15 @@ def opt_params(
         ).astype(int)
         depth = thresh_depth2
     else:
-        error_ratio = (target_error - thresh_error2) / (thresh_error1 - thresh_error2)
-        initial_guess_dim = thresh_depth1 + (thresh_depth2 - thresh_depth1) * (1 - error_ratio)
-        initial_guess = (initial_guess_dim, 10)
+        # error_ratio = (target_error - thresh_error2) / (thresh_error1 - thresh_error2)
+        # initial_guess_dim = thresh_depth1 + (thresh_depth2 - thresh_depth1) * (1 - error_ratio)
+        # initial_guess = (initial_guess_dim, 10)
         depth, n_samples = _optimise_circuit_division(
             target_error,
             noise_rate,
             thresh_depth1 // 3,
             thresh_depth2,
-            initial_guess=initial_guess,
+            # initial_guess=initial_guess,
             grid_search_width=grid_search_width,
         )
 
@@ -85,7 +85,7 @@ def _optimise_circuit_division(
     Optimal parameters for MSQPE in the intermidiete regime.
     """
     if initial_guess is None:
-        initial_guess = [(min_depth + max_depth) // 2, 10]
+        initial_guess = [min_depth + 1, 10]
 
     def constraint(x: tuple[int, int | float]) -> float:
         depth, n_sample = x
