@@ -32,6 +32,7 @@ extras = [
     "pyscf",
     "openfermion @ git+https://github.com/quantumlib/OpenFermion.git@master",
     "jax",
+    "pytest"
 ]
 
 [project.urls]
