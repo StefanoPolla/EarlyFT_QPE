@@ -64,12 +64,12 @@ def thc_ftqc_physical_cost(ccz_count, total_qubits, lambda_thc, error_budget=0.0
     """
     Wrapper of ftqc_physical_cost for THC with standard parameters.
     """
-    toffoli_per_unitary = ccz_count # TODO change to general magic count
+    magic_per_unitary = ccz_count
 
     cost = ftqc_physical_cost(
         epsilon=delta_e / lambda_thc,
         error_budget=error_budget,
-        toffoli_per_unitary=toffoli_per_unitary,
+        magic_per_unitary=magic_per_unitary,
         n_algo_qubits=total_qubits,
         n_factories=n_factories,
     )
