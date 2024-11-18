@@ -6,7 +6,7 @@ figures for the [manuscript arXiv:2410.05369](https://arxiv.org/abs/2410.05369).
 
 To run the THC costing, please install this repository with "extras" options:
 ```bash
-pip install .[extras]
+pip install '.[extras]'
 ```
 This will additionally install PySCF, JAX, and the most recent version of OpenFermion (pulled from GitHub) to support
 the newest JAX releases.

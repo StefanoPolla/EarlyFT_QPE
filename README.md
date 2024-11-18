@@ -3,7 +3,7 @@ Costing and validation of Early Fault-Tolerant Quantum Phase Estimation based on
 
 Install the eftqpe package along with the required dependecies by running
 ```bash
-pip install -e ./eftqpe
+pip install -e .
 ```
 
 The scripts and notebooks to reproduce the plots in the paper are in the `notebooks` directory,
