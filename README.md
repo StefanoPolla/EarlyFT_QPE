@@ -1,8 +1,9 @@
 # EarlyFT_QPE
 Cost estimates of Early Fault-Tolerant Quantum Phase Estimation based on circuit division.
 
-This code implements logical and physical cost estimates of the MSPQE algorithm described in [arXiv:2410.05369](https://arxiv.org/abs/2410.05369).
-
+This code implements logical and physical cost estimates of the MSPQE algorithm described in "Error mitigation and circuit division for early fault-tolerant quantum phase estimation"
+- Preprint: [arXiv:2410.05369](https://arxiv.org/abs/2410.05369).
+- Published article DOI: [10.1103/mlmy-yskj](https://doi.org/10.1103/mlmy-yskj).
 
 ## Install
 Install the eftqpe package along with the required dependecies by running
